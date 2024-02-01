@@ -1,0 +1,171 @@
+5.4 - Using Pod Security Policies 
+
+To enable pod security policies add: 
+### Enabling the Admission Controller: 
+--enable-adminssion-plugins into the manifest of /etc/kubernetes/manifest/kube-apiserver.yaml
+
+Remember that if you enable the --enable-admission-plugins, and if don't create a PodSecurityPolicy to apply to all PodSecurityPolicy
+then you will not be able to run any pod in the cluster. 
+
+!!! IMPORTANT: So if you activate the admission controller before creating any policies, no Pods will be allowed!!!
+
+###Example 
+
+apiVersion: policy/v1betav1
+kind: PodSecurityPolicy
+metadata: 
+  name: my-psp
+spec: 
+  privileged: false
+  runAsUser: 
+    rule: RunAsAny
+
+
+You also need to authorize the use of that policy. 
+
+A user needs to be authorized via RBAC the use of that policy for his onw pods. So you need a ClusterRole:
+###Example
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: 
+  name: cr-use-psp
+rules: 
+- apiGroups: ['policy']
+  resources: ['podsecuritypolicies']
+  verbs: ['use']
+  resourceNames: 
+  - my-psp 
+
+So, basically a user must have linked this clusterrole with a clusterolebinding to his user itself.
+
+So, you can have some users that are allowed to create pods with certain privileged policies, and other users that are 
+not allowed to create privileged pods because they don't have linked that clusterrole with a clusterrolebinding. 
+
+The problem is that this method works if I directly create a pod, but if I create a deployment, sts, replicaset or ds,
+then the Kubernetes replication controller will create the pod for me, so this will not work and the pods will not run. 
+
+So, we can use the serviceaccount to access to that policy that allows us to create a pod. 
+So, we will create a clusterrole that we will bind to our serviceaccount, and then we will set the service account to 
+our deployment. 
+
+### Hands-On demo
+
+Enabling PodSecurityPolicy in the kube-apiserver:
+
+vim /etc/kubernetes/manifest/kube-apiserver.yaml
+
+spec:
+  containers: 
+  - command: 
+    - kube-apiserver
+  ... 
+  [...omitted...]
+  ... 
+    - --enable-admission-plugins=NodeRestriction,PodSecurityPolicy  //we added PodSecurityPolicy 
+
+###Example of PodSecurityPolicy
+
+apiVersion: policy/v1beta1 
+kind: PodSecurityPolicy 
+metadata: 
+  name: psp-nonpriv 
+spec: 
+  privileged: false
+  runAsUser: 
+    rule: RunAsAny 
+  selinux: 
+    rule: runAsAny 
+  supplementalGroups: 
+    rule: RunAsAny 
+  volumes: 
+  - configMap 
+  - downwardAPI 
+  - emptyDir 
+  - persistentVolumeClaim 
+  - secret 
+  - projected 
+
+### Hands on: 
+
+k create ns psp-test
+
+k create sa psp-test-sa -n psp-test 
+
+We want our sa to able to use that PodSecurityPolicy in order to be used for the pods:
+
+Create a clusterrole: 
+
+apiVersion: rbac.authorization.k8s.io/v1 
+kind: ClusterRole 
+metadata: 
+  name: cr-use-psp-psp-nonpriv
+rules: 
+- apiGroups: ['policy']
+  resources: ['podsecuritypolicies']
+  verbs: ['use']
+  resourcesNames: 
+  - psp-nonpriv 
+
+Create a rolebinding: 
+
+apiVersion: rbac.authorization.k8s.io/v1 
+kind: RoleBinding 
+metadata: 
+  name: rb-psp-test
+  namespace: psp-test
+roleRef: 
+  kind: ClusterRole 
+  name: cr-use-psp-psp-non-priv 
+  apiGroup: rbac.authorization.k8s.io
+subjects: 
+- kind: ServiceAccount
+  name: psp-test-sa 
+  namespace: psp-test 
+
+Create a test pod: 
+
+apiVersion: v1 
+kind: Pod 
+metadata: 
+  name: pod-psp-test
+  namespace: psp-test 
+spec: 
+  containers: 
+  - name: nginx 
+    image: nginx:1.14.2
+
+I am able to create this pod because I am an admin user with all the privileges, because I have the authorization to use
+that podsecuritypolicy.
+
+If I set a serviceAccount: 
+
+apiVersion: v1 
+kind: Pod 
+metadata: 
+  name: pod-psp-test
+  namespace: psp-test 
+spec: 
+  serviceAccountName: psp-test-sa 
+  containers: 
+  - name: nginx 
+    image: nginx:1.14.2
+
+I am able to create the pod with that service account because tha sa has the permission to use that podsecuritypolicy 
+
+If I create a pod with that same sa but with "privileged: true", then I will not be able to create it with that sa 
+since that sa is bound to a podsecuritypolicy that not allow to create privileged pods. 
+
+apiVersion: v1 
+kind: Pod 
+metadata: 
+  name: pod-psp-test
+  namespace: psp-test 
+spec: 
+  serviceAccountName: psp-test-sa 
+  containers: 
+  - name: nginx 
+    image: nginx:1.14.2
+    securityContext: 
+      privileged: true 
+
+

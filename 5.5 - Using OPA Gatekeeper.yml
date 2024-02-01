@@ -1,0 +1,251 @@
+5.5 - Using OPA Gatekeeper
+
+OPA: Open Policy Agent Gatekeeper
+
+allows you to enforce highgly-customizable policies on any kind of k8s object at creation time. 
+
+Policies are defined using th OPA Constraint Framework. 
+
+With these policies you can control things like: 
+
+- Image repo: images must come from only certain pre-approved repositories. 
+- Resources limits: All Pods must specify resource limits. 
+- Labels: all deployments must include certain information labels. 
+
+For example: 
+"OPA Gatekeeper Contraint: all deployment must have a contact label listing the name of the user who triggered the deployment"
+
+
+A "Constraint Template" defines a schema for a constraint and the "Rego logic" that will enforce that constraint. 
+
+This template in the example of ACloudGuru allows a set of required labels to be passed in as parameters. Objects that are missing any of th required labels will not be allowed. 
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequiredlabels
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequiredLabels
+      validation:
+        # Schema for the `parameters` field
+        openAPIV3Schema:
+          properties:
+            labels:
+              type: array
+              items: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8srequiredlabels
+
+        violation[{"msg": msg, "details": {"missing_labels": missing}}] {
+          provided := {label | input.review.object.metadata.labels[label]}
+          required := {label | label := input.parameters.labels[_]}
+          missing := required - provided
+          count(missing) > 0
+          msg := sprintf("you must provide labels: %v", [missing])
+        }
+
+Templates use a language named "Rego ("ray-go")  to define the actual constraint logic. 
+
+When you created a ConstraintTemplate, you can create one or more constraints:
+
+apiVersion: constraints.gatekeeper.sh/v1
+kind: K8sRequiredLabels
+metadata: 
+  name: dep-must-have-contact
+spec: 
+  match: 
+    kind:
+    - apiGroup: [""]
+      kinds: ["Deployment"]
+  parameters: 
+    labels: ["contact"]
+
+A constraint is essentially an instance or an object implementation of the constraintTemplate. 
+
+A constraint attaches the logic of a constraint template to incoming k8s objects alongside (accanto) any parameters defined in the constraint template. 
+
+###Example: 
+
+apiVersion: constraints.gatekeeper.sh/v1 
+kind: K8sRequiredLabels 
+metadata: 
+  name: dep-must-have-contact 
+spec: 
+  match: 
+    kind: 
+    - apiGroups: [""]
+      kind: ["Deployment"]
+  parameters: 
+    labels: ["contact"]
+
+When you create a ConstraintTemplate, you are creating a new kind.  
+
+  match: 
+    kind: 
+    - apiGroups: [""]
+      kind: ["Deployment"]
+
+The previous 4 lines says to Kubernetes essentially what is the kind that k8s will apply the constraint. 
+
+  parameters: 
+    labels: ["contact"]
+
+With these two lines we are saying that the deployment must have a label with the key "contact"
+
+labels: 
+  contact: "Claudio"
+
+
+### Hands-On, Installing and using OPA GateKeeper
+
+k create -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/release-3.15/deploy/gatekeeper.yaml
+
+[root@host ~]# k create -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/release-3.15/deploy/gatekeeper.yaml
+namespace/gatekeeper-system created
+resourcequota/gatekeeper-critical-pods created
+customresourcedefinition.apiextensions.k8s.io/assign.mutations.gatekeeper.sh created
+customresourcedefinition.apiextensions.k8s.io/assignimage.mutations.gatekeeper.sh created
+customresourcedefinition.apiextensions.k8s.io/assignmetadata.mutations.gatekeeper.sh created
+customresourcedefinition.apiextensions.k8s.io/configs.config.gatekeeper.sh created
+customresourcedefinition.apiextensions.k8s.io/constraintpodstatuses.status.gatekeeper.sh created
+customresourcedefinition.apiextensions.k8s.io/constrainttemplatepodstatuses.status.gatekeeper.sh created
+customresourcedefinition.apiextensions.k8s.io/constrainttemplates.templates.gatekeeper.sh created
+customresourcedefinition.apiextensions.k8s.io/expansiontemplate.expansion.gatekeeper.sh created
+customresourcedefinition.apiextensions.k8s.io/expansiontemplatepodstatuses.status.gatekeeper.sh created
+customresourcedefinition.apiextensions.k8s.io/modifyset.mutations.gatekeeper.sh created
+customresourcedefinition.apiextensions.k8s.io/mutatorpodstatuses.status.gatekeeper.sh created
+customresourcedefinition.apiextensions.k8s.io/providers.externaldata.gatekeeper.sh created
+customresourcedefinition.apiextensions.k8s.io/syncsets.syncset.gatekeeper.sh created
+serviceaccount/gatekeeper-admin created
+role.rbac.authorization.k8s.io/gatekeeper-manager-role created
+clusterrole.rbac.authorization.k8s.io/gatekeeper-manager-role created
+rolebinding.rbac.authorization.k8s.io/gatekeeper-manager-rolebinding created
+clusterrolebinding.rbac.authorization.k8s.io/gatekeeper-manager-rolebinding created
+secret/gatekeeper-webhook-server-cert created
+service/gatekeeper-webhook-service created
+deployment.apps/gatekeeper-audit created
+deployment.apps/gatekeeper-controller-manager created
+poddisruptionbudget.policy/gatekeeper-controller-manager created
+mutatingwebhookconfiguration.admissionregistration.k8s.io/gatekeeper-mutating-webhook-configuration created
+validatingwebhookconfiguration.admissionregistration.k8s.io/gatekeeper-validating-webhook-configuration created
+
+
+
+Every 2.0s: kubectl get all -n gatekeeper-system                                                                                                        vmi1537861.contaboserver.net: Tue Jan 30 01:10:00 2024
+
+NAME                                                 READY   STATUS    RESTARTS      AGE
+pod/gatekeeper-audit-579c6978b-qkwm9                 1/1     Running   1 (14s ago)   28s
+pod/gatekeeper-controller-manager-86bd79c885-9hfzm   1/1     Running   0             28s
+pod/gatekeeper-controller-manager-86bd79c885-dsw8n   1/1     Running   0             28s
+pod/gatekeeper-controller-manager-86bd79c885-fdd9s   1/1     Running   0             28s
+
+NAME                                 TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
+service/gatekeeper-webhook-service   ClusterIP   10.98.186.24   <none>        443/TCP   28s
+
+NAME                                            READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/gatekeeper-audit                1/1     1            1           28s
+deployment.apps/gatekeeper-controller-manager   3/3     3            3           28s
+
+NAME                                                       DESIRED   CURRENT   READY   AGE
+replicaset.apps/gatekeeper-audit-579c6978b                 1         1         1       28s
+replicaset.apps/gatekeeper-controller-manager-86bd79c885   3         3         3       28s
+
+### Let's create a constraintTemplate
+
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequiredlabels
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequiredLabels
+      validation:
+        # Schema for the `parameters` field
+        openAPIV3Schema:
+          properties:
+            labels:
+              type: array
+              items: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8srequiredlabels
+
+        violation[{"msg": msg, "details": {"missing_labels": missing}}] {
+          provided := {label | input.review.object.metadata.labels[label]}
+          required := {label | label := input.parameters.labels[_]}
+          missing := required - provided
+          count(missing) > 0
+          msg := sprintf("you must provide labels: %v", [missing])
+        }
+
+
+### Now let's create an actual constraint
+
+apiVersion: constraints.gatekeeper.sh/v1 
+kind: K8sRequiredLabels 
+metadata: 
+  name: dep-must-have-contact 
+spec: 
+  match: 
+    kind: 
+    - apiGroups: [""]
+      kind: ["Deployment"]
+  parameters: 
+    labels: ["contact"]
+
+Now let's create a simple deployment: 
+
+apiVersion: apps/v1
+kind: Deployment 
+metadata: 
+  name: opa-test-deployment
+spec: 
+  replicas: 1
+  selector: 
+    matchLabels: 
+      app: opa-test
+  template: 
+    metadata: 
+      labels: 
+        app: opa-test 
+    spec: 
+      containers: 
+      - name: nginx 
+        image: nginx:1.14.2 
+        ports: 
+        - containerPort: 80 
+
+Since I have not added the contact label then when you create the deployment, OPA GateKeeper will tell you that you cannot create the deploy 
+Let's add the contact label: 
+
+apiVersion: apps/v1
+kind: Deployment 
+metadata: 
+  name: opa-test-deployment
+  labels: 
+    contact: Claudio 
+spec: 
+  replicas: 1
+  selector: 
+    matchLabels: 
+      app: opa-test
+  template: 
+    metadata: 
+      labels: 
+        app: opa-test 
+    spec: 
+      containers: 
+      - name: nginx 
+        image: nginx:1.14.2 
+        ports: 
+        - containerPort: 80 
+
+Then this deploy will be deployed. 
+

@@ -1,0 +1,74 @@
+7.3 - Analyzing container behavior with Falco
+
+You can use Falco as command line tool, like a web server, many ways.
+We are going to use it as command line tool. 
+
+The command that we use is "falco" command. 
+
+Use -r FILE to supply a custom rules file. 
+
+Falco is constantly checking what is happening in the kernel and applying our rules. 
+
+To use Falco rule for a number of seconds: 
+
+$ falco -r rules.yml -M 45
+
+-M is expressed in seconds
+
+Falco rules is a set of condition that will trigger our alerts in the cluster. 
+We can define falco rules using yaml files. 
+
+- rule: spawned_process_in_test_container
+  desc: A process was spawned in the test container.
+  condition: container.name = "falco-test" and evt.type = execve
+  output: "%evt.time,%user.uid,%proc.name,%container.id,%container.name"
+  priority: WARNING
+
+The condition says that if an hacker open a shell inside a pod trying to run a command. 
+The output section says the format of the alert, time, user, process, container id, container name. 
+We we will the this in a log. 
+%fields - % reference to a data field. Falco has serveral data fields that you can check with "falco --list"
+
+Let's install falco on the nodes where the pods will run: so on the workers. 
+
+curl -fsSL https://falco.org/repo/falcosecurity-packages.asc | \
+  sudo gpg --dearmor -o /usr/share/keyrings/falco-archive-keyring.gpg
+
+echo "deb [signed-by=/usr/share/keyrings/falco-archive-keyring.gpg] https://download.falco.org/packages/deb stable main" | \
+sudo tee -a /etc/apt/sources.list.d/falcosecurity.list  
+
+sudo apt-get update -y
+
+sudo apt-get install -y falco
+
+Let's test Falco with a pod test: 
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: falco-test-pod
+spec:
+  nodeName: k8s-worker1
+  containers:
+    - name: falco-test
+      image: busybox:1.33.1
+      command: ['sh', '-c', 'while true; do cat /etc/shadow; sleep 5; done']
+
+
+Let's take note of the container name: falco-test
+Since in the command inside the container we are trying to read the /etc/shadow file it means something suspicious in real production environment
+
+
+Let's create a falco rule on the worker node: 
+
+[root@host cks]# vim falco-rule-to-create-on-worker.yaml
+
+- rule: spawned_process_in_test_container
+  desc: A process was spawned in the test container.
+  condition: container.name = "falco-test" and evt.type = execve
+  output: "%evt.time,%user.uid,%proc.name,%container.id,%container.name"
+  priority: WARNING
+
+So in the condition we are saying that every time an attacker tries send commands from inside the "falco-test" container (container.name), then we will print 
+an alert in the format: output: "%evt.time,%user.uid,%proc.name,%container.id,%container.name"
+

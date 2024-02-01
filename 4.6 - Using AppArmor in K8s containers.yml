@@ -1,0 +1,59 @@
+4.6 - Using AppArmor in K8s containers
+
+An AppArmor profile can be stored in a file and applied using the "apparmor_parser" command.
+
+$ sudo apparmor_parser /path/to/profile-file
+
+By default, the command will load the profile in enforce mode. Use the -C flag for complain mode. 
+
+We need to apply this profile to all the nodes where our pods will be scheduled on, so that they will be able to access that AppArmor profile in order
+to behave like AppArmor is specifying in the profile. 
+
+!!! YOU NEED TO APPLY THE APPARMOR PROFILE TO ALL THE NODES WHERE THE POD WILL BE SCHEDULED ON TO APPLY THE BEHAVIOUR WE WANT! 
+
+
+In order to apply the profile to the container we need to specify it in the pod annotations: 
+
+apiVersion: v1
+kind: Pod
+metadata: 
+  name: test-pod
+  annotations: 
+    container.apparmor.security.beta.kubernetes.io/nginx: localhost/k8s-deny-write
+spec: 
+  containers: 
+  - name: nginx
+    image: nginx 
+
+!!! REMEMBER: IN THE ANNOTATIONS AT THE END OF THE KEY, YOU HAVE TO SPECIFY THE NAME OF THE CONTAINER THE PROFILE WILL BE APPLIED TO!
+
+In this case "nginx" containers, "container.apparmor.security.beta.kubernetes.io/nginx".
+
+container.apparmor.security.beta.kubernetes.io/<container_name>: <profile_ref>
+
+[root@host ~]# vim /etc/apparmor.d/deny-write
+
+#include <tunables/global>
+profile deny-write flags=(attach_disconnected) {
+  #include <abstractions/base>
+  file,
+  # Deny all file writes.
+  deny /** w,
+}
+
+[root@host ~]# apparmor_parser /etc/apparmor.d/deny-write
+
+
+Let's create a pod that use this profile: 
+
+apiVersion: v1
+kind: Pod
+metadata: 
+  name: apparmor-disk-write
+  annotations: 
+    containers.apparmor.security.beta.kubernetes.io/busybox: localhost/deny-write 
+spec: 
+  containers: 
+  - name: busybox
+    image: busybox
+    command: ['sh', '-c', 'while true; do echo "I write to the disk!" > diskwrite.log; sleep 5; done']

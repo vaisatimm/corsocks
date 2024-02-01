@@ -1,0 +1,257 @@
+6.13 - Configuring the ImagePolicyWebhook Admission Controller
+
+Now we have already set up our scanning application in the previous lesson.
+Now we need to set up the cluster to be able to communicate with that webhook application. 
+
+We will configure the "ImagePolicyWebhook admission controller" to use the webhook application to scan incoming images and deny thise that have vulnerabilities.
+
+Set up an admission controller configuration: 
+
+[root@host cks]# mkdir /etc/kubernetes/admission-control
+
+to store our config files. 
+
+The external service use a self-signed cert so i need self-signed certificates for ImagePolicyWebhook : client cert (cert and key) and CA 
+so the ImagePolicyWebhook will trust my external webhook service. 
+
+
+sudo wget -O /etc/kubernetes/admission-control/imagepolicywebhook-ca.crt https://raw.githubusercontent.com/linuxacademy/content-cks-trivy-k8s-webhook/main/certs/ca.crt
+
+-----BEGIN CERTIFICATE-----
+MIIEvDCCAqQCCQCgU4Yf9l+E+TANBgkqhkiG9w0BAQsFADAfMQwwCgYDVQQLDANB
+Q0cxDzANBgNVBAMMBkNLUyBDQTAgFw0yMTA1MTUxNjA3MjBaGA8yMTIxMDQyMTE2
+MDcyMFowHzEMMAoGA1UECwwDQUNHMQ8wDQYDVQQDDAZDS1MgQ0EwggIiMA0GCSqG
+SIb3DQEBAQUAA4ICDwAwggIKAoICAQDUfwya/lgXS3+rHzR8z3pqLsoB9NuxTcDP
+ARc2zNL7jPQPhp/zq1yzgOlNsNSmWgyCMBHm9e1a/jrObjIUdhfxe8ekwkrEgL/4
+zneG2Iz5FHw8mW2vqs/RORkbC8U5gZtwpyHshWXBj4gCHs6oW8rJ0TM+hkqrZwky
+saNBEDBxh5CnN90odWH0N5s1Vgj0dIaM+/dDcudWx3q53V4DUbjDa17lxWgJbK/g
+hFi7opi+T4ym9GSnFNXDvQupOW2wkDQ8VJZXN8NYYkhF2Iy4sJ2arzxwbOfqpi3F
+V+UO+U0ey1OEYhtkBxRk+j7M6S5sJd/JU1XET3ix7Vk8/26jcNFZabFvmGvfaWF9
+H24HnvAETB+qHjxY9vqn5sZ7yi5SyHHhA0xXPPZXrSEQkc4mGqciV6NpcZOQu0oB
+UoPDCPkpZyVtX5c7S7yydMH0j5qMz98YGxqY+748/PTQLPmdD9Q5dCgDSv8qtPuQ
+6nyei2fA28wWga3nXNekLiXNbqTO6VL2PkPoquDDThR/UBMT2xsdITSAa0nkjDnN
+cfpXm/BxG7KAATU5B5B3M9KSuPKOh1TuFFjnrFqEr6zDrwWbAN4R4vonHFLVixKJ
+XOGHnaWEuLmEPSxLB2AyOUEXz5vVh5MjB2IpGEH8Vtc4ofJreW38jSXaLSBaEOxZ
+yHWe/0B0CwIDAQABMA0GCSqGSIb3DQEBCwUAA4ICAQCtRYfGUjOrZDLN8IaQSW5n
+gz0d/kQIXo6CWzfK+D/kfe+B71NuVfV1mBbJQW7rGl/cQUZHTyF8INXImGzndPSY
+bQQ/WDw4jSQzL71CYHe7vVL7eoNvulXd/+DnpK8m2WTfszbednxzTfhZ60Ny7cf3
+TiDXjvUm3cqHIPUIFUhXW0PEKxPDMzCEeliKw9ghtQiUYS47VeiOmzYigX2RUKt3
+Kkbcife/erOq4LFlVWl5lGkLYLF787MlATE17Q2Njvnl1iAPGHL2cIKvTpOLZHse
+TJpY6ixJfYCGfYDMKOBuJPzvpP+S0St0VfgPnu+Cjz3g3QwsPzuSuluWdwiJX57h
+NZC/zROKVf0CyXzcvsi2q9RWuzrrXvTyMQEyqTO65OyRquYxxY1UWkyO9WtUrNg5
+RRSZBpFd7yWC10dZnimHLull3/w6AMOiBGuN3JNs2ch1MIadgv/Qs1z9jYBS5VC9
+Jizm6VgtU5R/RyNXigSKyuRYX0CzJ66gknHLl4FCEUvTN+vwmH/b2OplURc0S86D
+T+ec/u2tsJD/GKmWAXu4QpLt6p4W+DBBYOm9sC/VM75RFmjSAurlg+Aww/2hLDba
+buYtB3BQXRjQ5MdARHnwyPSjt7xEcp5oRiaS8w6keWntD6gjl7oe3CuQ7pDqA5ht
+l093glzRUg0crHmA4LpMHQ==
+-----END CERTIFICATE-----
+
+sudo wget -O /etc/kubernetes/admission-control/api-server-client.crt https://raw.githubusercontent.com/linuxacademy/content-cks-trivy-k8s-webhook/main/certs/api-serverclient.crt
+
+-----BEGIN CERTIFICATE-----
+MIIDsjCCAZoCCQCV3Va+29Y13jANBgkqhkiG9w0BAQsFADAfMQwwCgYDVQQLDANB
+Q0cxDzANBgNVBAMMBkNLUyBDQTAgFw0yMTA1MTUxNjA3MjBaGA8yMTIxMDQyMTE2
+MDcyMFowFTETMBEGA1UEAwwKYXBpLXNlcnZlcjCCASIwDQYJKoZIhvcNAQEBBQAD
+ggEPADCCAQoCggEBANL6CKGQ1Dq7L6+3yA8ge43HXJOAmSba8IWnqt/NeCfPrkG0
+TeDs/iCsM1cDDWxX/EtpSa0cUpXEiz08F7y2DHu4DDsfscM6O6/RU5ou8e6lSO1k
+JwOzd+kXSt68JxtjlOYMcuhXrnjXOK/uUm3yXrA9AaqHV4cKwTYsE8fV3vHAsGwD
+HgEByHPLf0LjcnZJfBHF7ZY5IXVXxFUYrsyh1IHsCfpWHZLx10nk3XsBIEfTpslt
+ZfzorMv+34USNjMRvFlyWqDy2AMezC+X/EIsGxUIR1Mi8oQNznKIkkmE4CUVj7rr
+KdCmfl8t3/Uurtg2ZRRu2+knIt3oCuwVnpD6P5kCAwEAATANBgkqhkiG9w0BAQsF
+AAOCAgEALz5nxmlbuimSJMVjJo/R0P48EQJQ9abVeIZHrYe/G72LhkF15IcC/CAV
+2VppzFaeJEOh2W80bGjZIfN0Me27ATcmG1x0ruwV0iX9JEOsoGkuoyZynr5IXyJR
+cRe5satQiorS7uTkQbFY57RowKHLlwEVi2ewOrF3GxlrGbJwFYxlBidSPkj/bWPO
+Lb91tm+vtoT2/5U1E6d4yNj+97yZ6VA8R3jj2N7mEYM6h9HD5+CwO//wOSyJ/HyL
+10r31I0hQdYNtMaQJHI34HlnaPdI6ra4KWzMcOlLh/9DqLPr7s9L3ncq8AkiR1bc
+OETc8YQXB+YkYfvGyh99rQi9k1mf7Iyce0jDU82AgGqbCgRztZhgDcvsJP2+nyOi
+Hknukq1ToIusdsHV/1sryq03Byx63zW4+yis2T9UOLw42y6Or/UmRUYLgq0bZRb2
+/+hVaJfTIP4F6CvB4smgnURYUw/Tpse1tRTTuRRt3+kdbEbEElQ8eeWGsIMLN/PE
+WsVFqNMDdhv37QJBO4YqsKjuYzd2KJto448Rsu51txhjUWC+Adt0DEQTuPgvfiUX
+uOjHPCyDYJaJm2lTiA02arJl+BM7fKkV//uePDZjAPKehLMB3hcKZChnVREzF6sD
+Ew14dOWtuvmAntWICOoI0qKXzy2Vv11J3BHQycyenjnz6P3vT84=
+-----END CERTIFICATE-----
+
+sudo wget -O /etc/kubernetes/admission-control/api-server-client.key https://raw.githubusercontent.com/linuxacademy/content-cks-trivy-k8s-webhook/main/certs/api-serverclient.key
+
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpQIBAAKCAQEA0voIoZDUOrsvr7fIDyB7jcdck4CZJtrwhaeq3814J8+uQbRN
+4Oz+IKwzVwMNbFf8S2lJrRxSlcSLPTwXvLYMe7gMOx+xwzo7r9FTmi7x7qVI7WQn
+A7N36RdK3rwnG2OU5gxy6FeueNc4r+5SbfJesD0BqodXhwrBNiwTx9Xe8cCwbAMe
+AQHIc8t/QuNydkl8EcXtljkhdVfEVRiuzKHUgewJ+lYdkvHXSeTdewEgR9OmyW1l
+/Oisy/7fhRI2MxG8WXJaoPLYAx7ML5f8QiwbFQhHUyLyhA3OcoiSSYTgJRWPuusp
+0KZ+Xy3f9S6u2DZlFG7b6Sci3egK7BWekPo/mQIDAQABAoIBAQC/dj9s+DVR01wU
+WHGLIMxfv0PJbJQQSfKrKJ0Om7XmUzft0sY2UHzTg9LXrSJ6Z2LDwRomqqRb3FEM
+UkOsc33irQUUhs/Yvzk5dnsrWl0eWQtUvGYXmsBAXW4JsrC+z2FqYHPLXP8uFQsR
+xfMyahj6UXL4ofiRyfXLxrZwzSuVMcY1OznqAJTKDSqgTjN90mHvEwdPmJxiNdG/
+pOlteyB46T6k3RVjWzPb9jsHMDq6BCbWoBIupNXrro+RgJQ1Kk+Xy05IFUWxAt+L
+NEKgDaJ2s0gDJqB7hcGuRJVHfhJ4jBEHGmZkQ+/OKFIJj6ILROOjRbLzOMsXlq/O
+rGGM7boBAoGBAO5v/C/FOjmeYbai4OLHE1Pu3rDny7R4JI7X+JpIi2F+lC3QJhuN
+3aTbx5JEkVuGoCkZdGQR3fxyNrp7J/wK9eMqy8ACWkdIXg2ILJQvuvR3HkXt4aW3
+ufrAnxgzYKRU0zAMhCoPF2mA1ygBq2/WE9z92oMUqT06lzYETAQ9xu5ZAoGBAOKE
+PovUzPTbQAUp1MFmOlZbyzOHFPexStTOpplG6p5U6DvDc/WR4BIVF4aqoppi2LEX
+NUcNGywJpnzxBKB69M8jyGWeXqfnHX32wOVDGfBIJ908v6NQhV+JyTJF0a90jIWf
+iaNekQf0goKNXjjT5wHmaIT0PdsZbFbD91BYXDNBAoGAFV/emJ2ymYW0Nr4lMM8t
+0WFhfzRYU4ZNqKx9sb79F7FUMUMul1vBWc0F9/vDmBPaebS5dVsQrlfCxjbSH8sP
+vdyRRVYwp6E6JTZm4KXiuZWQFi68ArIUrwDjgjTg3fposC7/DhIqRB/zqbd0meL0
+BuSO2R9aCI4fDg2Wju7GzYkCgYEAuQisCw+fCRmct1sPZ5h5aRf86q+ayibyaNoS
+Lz1F5GaZelBUBjLOZhcCq8fxocnDFw5NQCgNnTCY5pD/ZZRrLFYfmhr/WYqqhb4u
+nljs9GIM5mV8ag0Zlgx45O8xtXCwZWsIRQK32Fa80aZnZGZ82wl7MbhOWw7ueAYG
+nYRAdMECgYEAqzml3CTiWZuWm1EcgMhCD+6FXXY3D8UynbvY8kSaMww9Xtghx2Uq
++aAUq9O27sqWAQ2z8XjqhKU4Pn9tfrtlUQ+DAphSI7Nrv6pNPObLJKAwDw3O2Wjk
+C25ktNauM60eRGaaevMmLYKDQquo1nYdmUK95jAC7duJnuOdN4MFHCQ=
+-----END RSA PRIVATE KEY-----
+
+Let's create admission controller configuration: 
+
+[root@host admission-control]# vim /etc/kubernetes/admission-control/admission-control.conf
+
+apiVersion: apiserver.config.k8s.io/v1
+kind: AdmissionConfiguration
+plugins:
+  - name: ImagePolicyWebhook
+    configuration:
+      imagePolicy:
+        kubeConfigFile: /etc/kubernetes/admission-control/imagepolicywebhook_backend.kubeconfig
+        allowTTL: 50
+        denyTTL: 50
+        retryBackoff: 500
+        defaultAllow: true
+
+I have a plugin here: ImagePolicyWebhook 
+
+The "configuration:" part can be store and an external file and not in this config, so you just need to pass the "path: /path/to/file" under "- name: "
+
+The "kubeConfigFile:" part is important because it points to a kubeconfig file. It provides the authentication and the location info for the external service. 
+So that kubeconfig is where we are actually going to put in the url of our external service which ImagePolicyWebhook will use to communicate 
+with that external service. 
+
+We need to take note of this kubeconfig location because it will be part of this configuration. 
+
+the "defaultAllow: true" determines the default behaviour if the ImagePolicyWebhook cannot reach the external service. 
+
+In this case everything will be allowed if the external service goes down. 
+
+Let's put it in false, so we know that if create pods it is working, and if the external service does not work it's because the external service is down.
+So now let's implement that kubeconfig: 
+
+[root@host admission-control]# vim /etc/kubernetes/admission-control/imagepolicywebhook_backend.kubeconfig
+
+apiVersion: v1
+kind: Config
+clusters:
+  - name: trivy-k8s-webhook
+    cluster:
+      certificate-authority: /etc/kubernetes/admission-control/imagepolicywebhook-ca.crt
+      server: https://acg.trivy.k8s.webhook:8090/scan
+
+contexts:
+  - name: trivy-k8s-webhook
+    context:
+      cluster: trivy-k8s-webhook
+      user: api-server
+
+current-context: trivy-k8s-webhook
+preferences: {}
+
+users:
+  - name: api-server
+    user:
+      client-certificate: /etc/kubernetes/admission-control/api-server-client.crt
+      client-key: /etc/kubernetes/admission-control/api-server-client.key
+
+In this kubeconfig we have the part: server: https://acg.trivy.k8s.webhook:8090/scan, which is the url for our exterl service in the /etc/hosts 
+
+server: https://acg.trivy.k8s.webhook:8090/scan it is in https because the ImagePolicyWebhook does not support communicating with external service with http 
+
+Now let's make some changes to the kube-apiserver, lets enable the ImagePolicyWebhook and add the admission control config file 
+(respectively at line 189 and 184 of this file: - --admission-control-config-file=/etc/kubernetes/admission-control/admission-control.conf, and ImagePolicyWebhook )
+
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    kubeadm.kubernetes.io/kube-apiserver.advertise-address.endpoint: 95.111.231.207:6443
+  creationTimestamp: null
+  labels:
+    component: kube-apiserver
+    tier: control-plane
+  name: kube-apiserver
+  namespace: kube-system
+spec:
+  containers:
+  - command:
+    - kube-apiserver
+    - --admission-control-config-file=/etc/kubernetes/admission-control/admission-control.conf
+    - --advertise-address=95.111.231.207
+    - --allow-privileged=true
+    - --authorization-mode=Node,RBAC
+    - --client-ca-file=/etc/kubernetes/pki/ca.crt
+    - --enable-admission-plugins=NodeRestriction,ImagePolicyWebhook
+    - --enable-bootstrap-token-auth=true
+
+And under volumes and volumeMounts:
+
+volumes:
+  - name: admission-control
+    hostPath:
+      path: /etc/kubernetes/admission-control
+      type: DirectoryOrCreate
+
+volumeMounts:
+  - name: admission-control
+    mountPath: /etc/kubernetes/admission-control
+    readOnly: true
+
+We did this in order the kube-apiserver can sees the paths of conf file. 
+
+Let's test the setup with a pod: 
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: imagepolicy-busybox-pod
+spec:
+  restartPolicy: Never
+  containers:
+    - name: busybox
+      image: busybox:1.33.1
+
+If the external webhook service based on trivy does not find vulnerabilities in the image busybox:1.33.1, then the pod will be allowed: 
+
+[root@host cks]# cat > pod-admission-controller.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: imagepolicy-busybox-pod
+spec:
+  restartPolicy: Never
+  containers:
+    - name: busybox
+      image: busybox:1.33.1
+[root@host cks]# k create -f pod-admission-controller.yml
+pod/imagepolicy-busybox-pod created
+
+The pod gets created. 
+
+What happens if the pod uses an image with vulnerabilities?
+
+[root@host cks]# cat > pod-admission-controller-with-vulnerabilities.yml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: imagepolicy-nginx-pod
+spec:
+  containers:
+    - name: nginx
+      image: nginx:1.14.2
+
+[root@host cks]# k create -f pod-admission-controller-with-vulnerabilities.yml
+Error from server (Forbidden): error when creating "pod-admission-controller-with-vulnerabilities.yml": pods "imagepolicy-nginx-pod" is forbidden: image policy webhook backend denied one or more images: Image(s) contain serious vulnerabilities: [nginx:1.14.2]
+
+
+It says that Image(s) contain serious vulnerabilities: [nginx:1.14.2]
+
+To disable this function: 
+
+Let's modify the kube-apiserver and remove the ImagePolicyWebhook

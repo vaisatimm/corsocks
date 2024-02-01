@@ -1,0 +1,6 @@
+3.6 - keeping k8s updated
+
+Minor version are regularly patched. These patches often contain bug fixes and security fixes.
+Patch support period: latest three minor versions receive patch support. Minor versions will receive patches for approximately one year.
+Security patch backported usually to the three last minor release, but not always. It's better to keep the cluster up to date. 
+

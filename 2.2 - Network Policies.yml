@@ -1,0 +1,1 @@
+Let's just add/state/remember that when you have a netpol that block all traffic (default-deny), you have to create two specific netpol to allow traffic from a client pod to a server pod. One netpol needs to ben egress for the client pod that needs to send requests. The second netpol needs to be ingress for the server pod that needs to receive requests.

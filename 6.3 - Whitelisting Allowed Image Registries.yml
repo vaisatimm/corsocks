@@ -1,0 +1,92 @@
+6.3 - Whitelisting Allowed Image Registries
+
+Basically you have to be careful about what images you download from untrusted registries. 
+
+We can restrick the list of registries from where we download images, using OPA Gatekeeper
+
+Let's create a constraintTemplate: 
+
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: k8sallowedrepos
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sAllowedRepos
+      validation:
+        # Schema for the `parameters` field
+        openAPIV3Schema:
+          properties:
+            repos:
+              type: array
+              items:
+                type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8sallowedrepos
+        
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          satisfied := [good | repo := input.parameters.repos[_]; good = startswith(container.image, repo)]
+          not any(satisfied)
+          msg := sprintf("container <%v> has an invalid image repo <%v>, allowed repos are %v", [container.name, container.image, input.parameters.repos])
+        }
+        
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.initContainers[_]
+          satisfied := [good | repo := input.parameters.repos[_]; good = startswith(container.image, repo)]
+          not any(satisfied)
+          msg := sprintf("container <%v> has an invalid image repo <%v>, allowed repos are %v", [container.name, container.image, input.parameters.repos])
+        }
+
+[root@host cks]# k create -f ConstraintTemplateRegistry.yaml
+constrainttemplate.templates.gatekeeper.sh/k8sallowedrepos created
+[root@host cks]# k get constrainttemplate
+NAME              AGE
+k8sallowedrepos   7s
+
+The "Rego" (the logic) is for containers and initContainers. 
+
+After the constraintTemplate let's create an instance: the constraint itself. 
+This will just allow dockerhub: 
+
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sAllowedRepos
+metadata:
+  name: whitelist-dockerhub
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+  parameters:
+    repos:
+      - "docker.io"
+
+[root@host cks]# k create -f ConstraintRegistry.yaml
+k8sallowedrepos.constraints.gatekeeper.sh/whitelist-dockerhub created
+[root@host cks]# k get constraint
+NAME                  ENFORCEMENT-ACTION   TOTAL-VIOLATIONS
+whitelist-dockerhub
+
+So if the image does not comes from dockerhub it will not create the pod 
+
+apiVersion: v1 
+kind: Pod 
+metadata: 
+  name: gcr-busybox
+spec: 
+  restartPolicy: 
+  containers: 
+  - name: busybox 
+    image: gcr.io/google-containers/busybox
+    command: ['sh', '-c', 'sleep 3600']
+
+[root@host cks]# k create -f no-registry-pod.yaml
+Error from server (Forbidden): error when creating "no-registry-pod.yaml": admission webhook "validation.gatekeeper.sh" denied the request: [whitelist-dockerhub] container <busybox> has an invalid image repo <gcr.io/google-containers/busybox>, allowed repos are ["docker.io"]
+
+Let's delete just the object constraint, not the constraintTemplate, otherwise it will be annoying to work in the cluster. 
+

@@ -1,0 +1,16 @@
+2.10 - Securing Node Endpoints
+
+Ports on master and workers can be surface attack.
+
+For a kubeadm cluster:
+
+6443        Api Server
+2379-2380   Ectd
+10250       Kubelet (master/worker)
+10251       kube-scheduler
+10252       kube-controller-manager
+
+They should be closed to external access.
+
+Nodeport services: 30000-32627
+

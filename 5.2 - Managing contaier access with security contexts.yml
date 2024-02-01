@@ -1,0 +1,40 @@
+5.2 - Managing container access with security contexts
+
+A security context is just a portion of the pod spec at pod spec level that allows to specify security config. 
+
+For example: 
+
+apiVersion: v1
+kind: Pod
+metadata: 
+  name: test-pod
+spec: 
+  securityContext: 
+    runAsUser: 1000
+  containers: 
+  - name: nginx
+    image: nginx
+    securityContext: 
+      runAsUser: 2000
+
+The runAsUser: 1000, will be applied to all the containers in the pod. So this allows me to set in one time the same security context to all containers. 
+The runAsUser: 2000, set the user at container level. So this allows me to set specific security context for each container if we have different container in a pod. 
+
+###Example: 
+
+apiVersion: v1
+kind: Pod 
+metadata: 
+  name: security-context-pod
+spec: 
+  securityContext: 
+    runAsUser: 1000
+  containers: 
+  - name: busybox
+    image: busybox
+    command: ['sh', '-c', 'sleep 3600']
+    securityContext:
+      allowPrivilegeEscalation: false     //this will apply jus to this container. 
+
+allowPrivilegeEscalation: false , this allows a child process, such as a container, to potentially claim more permissions than the process process has. 
+

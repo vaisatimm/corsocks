@@ -1,0 +1,10 @@
+4.4 - Exploring network-level security
+
+The k8s network is a virtual network that spans across the nodes. 
+
+We can limit the comunication with pods and services in the cluster by limiting the access to the cluster network from outside the cluster. 
+
+Anyone who can reach the cluster network can reach the cluster network. 
+
+
+

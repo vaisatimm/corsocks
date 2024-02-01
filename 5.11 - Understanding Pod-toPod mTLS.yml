@@ -1,0 +1,16 @@
+5.11 - Understanding Pod-toPod mTLS
+
+In order to avoid an attacker listening between our pods we can use mTLS: mutual transport layer security. 
+
+Both parties fully authenticate each other and all the communication are encrypted. 
+
+in mTLS both client and server both have a certificate to authenticate each other. 
+
+If you have many pods, each one will need to have N-1 other certificates for the mTLS. 
+
+K8s certificates help us a bit: Kubernetes API allows you to obtain certificates which you can use in your applications. 
+
+These certificates are generated from a central certificate authority (CA).
+
+You can programmatically access the certificates using th API. 
+

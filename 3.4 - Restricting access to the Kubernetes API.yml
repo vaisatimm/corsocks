@@ -1,0 +1,5 @@
+3.4 - Restricting access to the Kubernetes API
+
+Kubernetes API is basically the HTTP interface to the cluster. 
+
+Limiting network access to the API using firewalls and network segmentation. 

@@ -1,0 +1,26 @@
+2.12 - Verifying Kubernetes Platform Binaries
+
+kubectl
+kubelet
+kubeadm
+
+It can happen that you download a kubectl binary with some malicious code. 
+
+Checksum files contains some cryptographic hashes calculated frome the content of a valid binary.
+
+Let's verify our checksums. 
+
+[root@host ~]# curl -LO "https://dl.k8s.io/v1.28.0/bin/linux/amd64/kubectl.sha256"
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   138  100   138    0     0    358      0 --:--:-- --:--:-- --:--:--   359
+100    64  100    64    0     0     96      0 --:--:-- --:--:-- --:--:--     0
+
+[root@host ~]# ls -lrt
+total 1745524
+-rw-r--r--   1 root   root          64 Jan 24 22:12 kubectl.sha256
+
+[root@host ~]# echo "$(<kubectl.sha256) /usr/bin/kubectl" | sha256sum --check
+/usr/bin/kubectl: OK
+
+

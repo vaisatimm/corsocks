@@ -1,0 +1,49 @@
+4.2 Understanding host OS security Concerns
+
+We need to understand the difference between Host Namespaces (Kernel linux Namespaces) and Container Namespaces. 
+
+You can configure your pods in order to access to the Host Namespaces (which are the Kernel linux namespaces). 
+If an hacker take control of a pod and of a Kubernetes Namespace it cannot take control of the host.
+But if you give a container the abilty to access to the host namespaces for some reason. 
+So we want to minimize this risk. 
+
+Let's make an example of possible directives that could put our container in risky communication with the host: 
+
+apiversion: v1
+kind: Pod
+metadata: 
+  name: test-pod
+spec:
+  hostIPC: true
+  hostNetwork: true
+  hostPID: true
+  containers:
+  - name: nginx 
+    image: nginx 
+
+HostIPC: Inter Process Communication: Feature that allows processes to communicate with each other. If hostIPC=true the container will use hostIPC namespaces. 
+hostNetwork: if set to true, containers will use the host's network namespace.
+hostPID: if set to true, containers will use host's process id (PID) namespace. 
+
+By default they are set to false. 
+
+### Privileged Mode: allows containers to access host-level resources and capabilities, much like a non-container process running directly on the host. 
+So a non-privileged container cannot access to those host resources and capabilities. 
+
+Example: 
+
+apiVersion: v1
+kind: Pod
+metadata: 
+  name: test-pod
+spec: 
+  containers: 
+  - name: nginx 
+    image: nginx 
+    securityContext: 
+      privileged: true 
+
+
+
+
+

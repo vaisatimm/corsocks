@@ -1,0 +1,22 @@
+5.3 - Governing Pod Configurations with POD SECURITY POLICIES 
+
+PodSecurityPolicy can say for example that a pod can: 
+
+NO - Privileged Container mode;
+YES - Allow privilege escalation;
+NO - Run as root;
+YES - Allow volume types;
+NO - Access host network. 
+
+PodSecurityPolicy will prevent that a pod run in a privileged mode, run as root, access the host network. 
+PodSecurityPolicy can force pods to run as a certain user for example. 
+
+Pod are deprecated!
+Probabily they are not in the CKS anymore. 
+
+_____________________________________________________________________
+
+Pod security Policies have been substituted by "Pod Security Admission" starting from the K8s v1.21 version 
+
+PSA are more easy, convinient and clear.
+

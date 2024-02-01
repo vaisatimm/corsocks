@@ -1,0 +1,26 @@
+2.13 - Verify Kubernetes Binaries - Hands on lab
+
+
+[root@host ~]# kubectl version
+Client Version: v1.28.0
+
+VERSION="v1.28.0"
+
+curl -LO "https://dl.k8s.io/$VERSION/bin/linux/amd64/kubectl.sha256"
+curl -LO "https://dl.k8s.io/$VERSION/bin/linux/amd64/kubelet.sha256"
+curl -LO "https://dl.k8s.io/$VERSION/bin/linux/amd64/kube-apiserver.sha256""
+
+You can find the kube-apiserver binary into the static pod of kube-apiserver. 
+
+[root@host ~]# echo "$(<kubectl.sha256) /usr/bin/kubectl" | sha256sum --check
+/usr/bin/kubectl: OK
+
+[root@host ~]# echo "$(<kubeadm.sha256) /usr/bin/kubadm" | sha256sum --check
+/usr/bin/kubeadm: OK
+
+[root@host ~]# echo "$(<kubelet.sha256) /usr/bin/kubelet" | sha256sum --check
+kubelet: FAILED 
+
+Remove the binary. 
+
+[root@host ~]# rm kubelet

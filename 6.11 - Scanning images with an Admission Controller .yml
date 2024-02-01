@@ -1,0 +1,11 @@
+6.11 - Scanning images with an Admission Controller 
+
+An admission controller intercepts requests to k8s api before they can do changes in order to approve or deny them. 
+
+The ImagePolicyWebhook admission controller sends a request to an external webhook containing info about the image being used. 
+
+The external webhook can approve or deny the request to create a pod with that image, if there are severe vulnerabilities.
+
+
+
+

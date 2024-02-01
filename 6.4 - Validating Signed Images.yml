@@ -1,0 +1,44 @@
+6.4 - Validating Signed Images
+
+Signature of images: hash sha256
+
+If you put the hash after you image, and the image fails the validation the pod will be create but the node will fail to download the image. 
+You will see an error in pod. 
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: signed-image-pod
+spec:
+  restartPolicy: Never
+  containers:
+    - name: busybox
+      image: busybox:1.33.1@sha256:9687821b96b24fa15fac11d936c3a633ce1506d5471ebef02c349d85bebb11b5
+      command: ['sh', '-c', 'echo "Hello, world!"']
+
+[root@host cks]# k get po
+NAME                              READY   STATUS      RESTARTS      AGE
+signed-image-pod                  0/1     Completed   0             13s
+
+And it works. 
+
+Let's just change last number of hash putting 6 instead of 5: 
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-signature-pod
+spec:
+  restartPolicy: Never
+  containers:
+    - name: busybox
+      image: busybox:1.33.1@sha256:9687821b96b24fa15fac11d936c3a633ce1506d5471ebef02c349d85bebb11b6
+      command: ['sh', '-c', 'echo "Hello, world!"']
+
+[root@host cks]# k get po
+NAME                              READY   STATUS         RESTARTS      AGE
+bad-signature-pod                 0/1     ErrImagePull   0             3s
+
+It is in error because the cluster think that that image could be malicious. 
+

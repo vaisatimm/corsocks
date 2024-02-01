@@ -1,0 +1,141 @@
+6.9 - Scanning Images for known Vulerabilities
+
+If we have a lot images: vulnerabilities scanning through image scanning in kubernetes. 
+
+Tools for image scanning: 
+
+- Trivy: command line tool to scan images
+Ex.: $ trivy image nginx:1.14.1 
+or for older version of trivy: 
+$ trivy nginx:1.14.1 
+
+Trivy makes a report of vulnerabilities inside the image. 
+In the column Library trivy says exactly with piece of software is vurlnerable. 
+In the column VULNERABILITY ID is a unique identifier for the vulnerability 
+In the column SEVERITY
+
+###INSTALLING TRIVY
+
+
+wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+sudo apt-get update && sudo apt-get install -y trivy
+
+### Let's give it a try on nginx:1.14.1 ---> there will be a bunch of info
+
+[root@host cks]# trivy image nginx:1.14.1
+2024-02-01T00:16:32.088+0100    INFO    Need to update DB
+2024-02-01T00:16:32.088+0100    INFO    DB Repository: ghcr.io/aquasecurity/trivy-db
+2024-02-01T00:16:32.089+0100    INFO    Downloading DB...
+42.66 MiB / 42.66 MiB [-----------------------------------------------------------------------------------------------------------------------------------------------------------] 100.00% 10.27 MiB p/s 4.4s
+2024-02-01T00:16:37.068+0100    INFO    Vulnerability scanning is enabled
+2024-02-01T00:16:37.068+0100    INFO    Secret scanning is enabled
+2024-02-01T00:16:37.068+0100    INFO    If your scanning is slow, please try '--scanners vuln' to disable secret scanning
+2024-02-01T00:16:37.068+0100    INFO    Please see also https://aquasecurity.github.io/trivy/v0.48/docs/scanner/secret/#recommendation for faster secret detection
+2024-02-01T00:16:42.053+0100    INFO    Java DB Repository: ghcr.io/aquasecurity/trivy-java-db:1
+2024-02-01T00:16:42.053+0100    INFO    Downloading the Java DB...
+500.25 MiB / 500.25 MiB [----------------------------------------------------------------------------------------------------------------------------------------------------------] 100.00% 15.24 MiB p/s 33s
+2024-02-01T00:17:15.673+0100    INFO    The Java DB is cached for 3 days. If you want to update the database more frequently, the '--reset' flag clears the DB cache.
+2024-02-01T00:17:15.695+0100    INFO    Detected OS: debian
+2024-02-01T00:17:15.695+0100    INFO    Detecting Debian vulnerabilities...
+2024-02-01T00:17:15.700+0100    INFO    Number of language-specific files: 0
+2024-02-01T00:17:15.718+0100    WARN    This OS version is no longer supported by the distribution: debian 9.6
+2024-02-01T00:17:15.719+0100    WARN    The vulnerability detection may be insufficient because security updates are not provided
+
+nginx:1.14.1 (debian 9.6)
+
+Total: 279 (UNKNOWN: 9, LOW: 62, MEDIUM: 65, HIGH: 104, CRITICAL: 39)
+
+┌────────────────────────┬──────────────────┬──────────┬──────────────┬────────────────────────┬────────────────────────┬──────────────────────────────────────────────────────────────┐
+│        Library         │  Vulnerability   │ Severity │    Status    │   Installed Version    │     Fixed Version      │                            Title                             │
+├────────────────────────┼──────────────────┼──────────┼──────────────┼────────────────────────┼────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ apt                    │ CVE-2019-3462    │ HIGH     │ fixed        │ 1.4.8                  │ 1.4.9                  │ Incorrect sanitation of the 302 redirect field in HTTP       │
+│                        │                  │          │              │                        │                        │ transport metho ......                                       │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2019-3462                    │
+│                        ├──────────────────┼──────────┤              │                        ├────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                        │ CVE-2020-27350   │ MEDIUM   │              │                        │ 1.4.11                 │ apt: integer overflows and underflows while parsing .deb     │
+│                        │                  │          │              │                        │                        │ packages                                                     │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2020-27350                   │
+│                        ├──────────────────┤          │              │                        ├────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                        │ CVE-2020-3810    │          │              │                        │ 1.4.10                 │ Missing input validation in the ar/tar implementations of    │
+│                        │                  │          │              │                        │                        │ APT before v ......                                          │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2020-3810                    │
+├────────────────────────┼──────────────────┼──────────┼──────────────┼────────────────────────┼────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ bsdutils               │ CVE-2016-2779    │ HIGH     │ affected     │ 1:2.29.2-1+deb9u1      │                        │ util-linux: runuser tty hijack via TIOCSTI ioctl             │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2016-2779                    │
+│                        ├──────────────────┼──────────┤              │                        ├────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                        │ CVE-2021-37600   │ LOW      │              │                        │                        │ util-linux: integer overflow can lead to buffer overflow in  │
+│                        │                  │          │              │                        │                        │ get_sem_elements() in sys-utils/ipcutils.c...                │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2021-37600                   │
+├────────────────────────┼──────────────────┤          ├──────────────┼────────────────────────┼────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ coreutils              │ CVE-2016-2781    │          │ will_not_fix │ 8.26-3                 │                        │ coreutils: Non-privileged session can escape to the parent   │
+│                        │                  │          │              │                        │                        │ session in chroot                                            │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2016-2781                    │
+├────────────────────────┼──────────────────┼──────────┼──────────────┼────────────────────────┼────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ debian-archive-keyring │ DLA-2948-1       │ UNKNOWN  │ fixed        │ 2017.5                 │ 2017.5+deb9u2          │ debian-archive-keyring - security update                     │
+├────────────────────────┼──────────────────┼──────────┤              ├────────────────────────┼────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ dpkg                   │ CVE-2022-1664    │ CRITICAL │              │ 1.18.25                │ 1.18.26                │ Dpkg::Source::Archive in dpkg, the Debian package management │
+│                        │                  │          │              │                        │                        │ system, b ...                                                │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2022-1664                    │
+├────────────────────────┼──────────────────┼──────────┼──────────────┼────────────────────────┼────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ e2fslibs               │ CVE-2022-1304    │ HIGH     │ affected     │ 1.43.4-2               │                        │ e2fsprogs: out-of-bounds read/write via crafted filesystem   │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2022-1304                    │
+│                        ├──────────────────┼──────────┼──────────────┤                        ├────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                        │ CVE-2019-5094    │ MEDIUM   │ fixed        │                        │ 1.43.4-2+deb9u1        │ e2fsprogs: Crafted ext4 partition leads to out-of-bounds     │
+│                        │                  │          │              │                        │                        │ write                                                        │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2019-5094                    │
+│                        ├──────────────────┤          │              │                        ├────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                        │ CVE-2019-5188    │          │              │                        │ 1.43.4-2+deb9u2        │ e2fsprogs: Out-of-bounds write in e2fsck/rehash.c            │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2019-5188                    │
+├────────────────────────┼──────────────────┼──────────┼──────────────┤                        ├────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ e2fsprogs              │ CVE-2022-1304    │ HIGH     │ affected     │                        │                        │ e2fsprogs: out-of-bounds read/write via crafted filesystem   │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2022-1304                    │
+│                        ├──────────────────┼──────────┼──────────────┤                        ├────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                        │ CVE-2019-5094    │ MEDIUM   │ fixed        │                        │ 1.43.4-2+deb9u1        │ e2fsprogs: Crafted ext4 partition leads to out-of-bounds     │
+│                        │                  │          │              │                        │                        │ write                                                        │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2019-5094                    │
+│                        ├──────────────────┤          │              │                        ├────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                        │ CVE-2019-5188    │          │              │                        │ 1.43.4-2+deb9u2        │ e2fsprogs: Out-of-bounds write in e2fsck/rehash.c            │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2019-5188                    │
+├────────────────────────┼──────────────────┼──────────┼──────────────┼────────────────────────┼────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ gcc-6-base             │ CVE-2018-12886   │ HIGH     │ will_not_fix │ 6.3.0-18+deb9u1        │                        │ gcc: spilling of stack protection address in cfgexpand.c and │
+│                        │                  │          │              │                        │                        │ function.c leads to...                                       │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2018-12886                   │
+├────────────────────────┼──────────────────┤          ├──────────────┼────────────────────────┼────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ gpgv                   │ CVE-2018-1000858 │          │ affected     │ 2.1.18-8~deb9u3        │                        │ gnupg2: Cross site request forgery in dirmngr resulting in   │
+│                        │                  │          │              │                        │                        │ an information disclosure...                                 │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2018-1000858                 │
+│                        ├──────────────────┼──────────┤              │                        ├────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                        │ CVE-2018-9234    │ LOW      │              │                        │                        │ GnuPG: Unenforced configuration allows for apparently valid  │
+│                        │                  │          │              │                        │                        │ certifications actually signed by signing...                 │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2018-9234                    │
+│                        ├──────────────────┤          │              │                        ├────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                        │ CVE-2019-14855   │          │              │                        │                        │ gnupg2: OpenPGP Key Certification Forgeries with SHA-1       │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2019-14855                   │
+├────────────────────────┼──────────────────┼──────────┼──────────────┼────────────────────────┼────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ gzip                   │ CVE-2022-1271    │ HIGH     │ fixed        │ 1.6-5+b1               │ 1.6-5+deb9u1           │ gzip: arbitrary-file-write vulnerability                     │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2022-1271                    │
+├────────────────────────┼──────────────────┤          │              ├────────────────────────┼────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ libapt-pkg5.0          │ CVE-2019-3462    │          │              │ 1.4.8                  │ 1.4.9                  │ Incorrect sanitation of the 302 redirect field in HTTP       │
+│                        │                  │          │              │                        │                        │ transport metho ......                                       │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2019-3462                    │
+│                        ├──────────────────┼──────────┤              │                        ├────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                        │ CVE-2020-27350   │ MEDIUM   │              │                        │ 1.4.11                 │ apt: integer overflows and underflows while parsing .deb     │
+│                        │                  │          │              │                        │                        │ packages                                                     │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2020-27350                   │
+│                        ├──────────────────┤          │              │                        ├────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                        │ CVE-2020-3810    │          │              │                        │ 1.4.10                 │ Missing input validation in the ar/tar implementations of    │
+│                        │                  │          │              │                        │                        │ APT before v ......                                          │
+│                        │                  │          │              │                        │                        │ https://avd.aquasec.com/nvd/cve-2020-3810                    │
+
+
+
+Now let's do the same on busybox:1.33.1
+
+[root@host cks]# trivy image busybox:1.33.1
+2024-02-01T00:21:18.910+0100    INFO    Vulnerability scanning is enabled
+2024-02-01T00:21:18.910+0100    INFO    Secret scanning is enabled
+2024-02-01T00:21:18.910+0100    INFO    If your scanning is slow, please try '--scanners vuln' to disable secret scanning
+2024-02-01T00:21:18.910+0100    INFO    Please see also https://aquasecurity.github.io/trivy/v0.48/docs/scanner/secret/#recommendation for faster secret detection
+2024-02-01T00:21:20.157+0100    INFO    Number of language-specific files: 0
+

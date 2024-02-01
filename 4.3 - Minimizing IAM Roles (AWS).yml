@@ -1,0 +1,6 @@
+4.3 - Minimizing IAM Roles (AWS)
+
+Kubernetes containers running on AWS may be able to access IAM credentials. 
+
+- Principle of least privilege: make sure any IAM roles assignet to your EC2s or other relevant resources have only the permissions they need. 
+- Block access: if your K8s app do not need to use IAM, consider blocking access to IAM credentials (for EC2, IP address 169.254.169.254)

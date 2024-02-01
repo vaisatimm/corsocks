@@ -1,0 +1,67 @@
+6.12 - Setting up an Image Scanner
+
+Our Goal: is to create the external webhook that we mentioned in the previous lesson in order to scan incoming images. 
+
+In order to scan incoming images using ImagePolicyWebhook, we need an application that can receive the webhook requests and perform the image scanning. 
+
+Our goal in this lesson will be to install and configure such an application so that our cluster can use it. 
+
+!!! This is not included in the CKS exam !!! 
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: trivy-k8s-webhook
+  namespace: kube-system
+spec:
+  hostNetwork: true
+  containers:
+  - name: trivy-k8s-webhook
+    image: linuxacademycontent/trivy-k8s-webhook:0.0.1
+    imagePullPolicy: Always
+    ports:
+    - name: webhook
+      containerPort: 8090
+      protocol: TCP
+
+It's a basic web server using trivy to scan the images like a serious prod external webhook. 
+
+It's a static manifest so move to /etc/kubernetes/manifest
+
+[root@host cks]# mv trivy-k8s-webhook.yml /etc/kubernetes/manifests/
+[root@host cks]# chown root:root /etc/kubernetes/manifests/trivy-k8s-webhook.yml
+[root@host cks]# chmod 600 /etc/kubernetes/manifests/trivy-k8s-webhook.yml
+
+To make things more usable: vim /etc/hosts
+
+127.0.0.1       localhost
+127.0.1.1       vmi1537861.contaboserver.net    vmi1537861
+
+# The following lines are desirable for IPv6 capable hosts
+::1     localhost ip6-localhost ip6-loopback
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+95.111.231.207    vmi1537861.contaboserver.net vmi1537861
+95.111.236.211    vmi1537862.contaboserver.net vmi1537862
+
+127.0.0.1 acg.trivy.k8s.webhook       //LET'S ADD THIS LINE
+
+When configuring ImagePolicyWebhook admission controller later on we can reference that url 
+
+curl https://acg.trivy.k8s.webhook:8090/scan -X POST --header "Content-Type: application/json" -d '{"spec":{"containers":[{"image":"nginx:1.19.10"},{"image":"nginx:1.14.1"}]}}' -k
+
+[root@host cks]# curl https://acg.trivy.k8s.webhook:8090/scan -X POST --header "Content-Type: application/json" -d '{"spec":{"containers":[{"image":"nginx:1.19.10"},{"image":"nginx:1.14.1"}]}}' -k
+{"apiVersion": "imagepolicy.k8s.io/v1alpha1","kind": "ImageReview","status": {"allowed": false,"reason": "Image(s) contain serious vulnerabilities: [nginx:1.19.10 nginx:1.14.1]"}}[root@host cks]#
+
+This is the url that ImagePolicyWebhook is going to use to communicate with our image service https://acg.trivy.k8s.webhook:8090/scan 
+it's a post request, content type application/json then i have a json '{"spec":{"containers":[{"image":"nginx:1.19.10"},{"image":"nginx:1.14.1"}]}}' -k that the ImagePolicyWebhook
+admission controller uses , and let's add the -k to ignore the self-signed certificate warning. 
+
+The first time it takes a bit of time since trivy needs to download the datase: then we have this answer to the post: 
+
+{"apiVersion": "imagepolicy.k8s.io/v1alpha1","kind": "ImageReview","status": {"allowed": false,"reason": "Image(s) contain serious vulnerabilities: [nginx:1.19.10 nginx:1.14.1]"}}
+
+in this string we have "allowed: false" and the reason is : "Image(s) contain serious vulnerabilities:"
+
+
+

@@ -1,0 +1,18 @@
+7.2 - Understanding behavioral analytics
+
+After an attack has occurred, we have to able to do a post-mortem analysis. 
+
+We have to observe abnormal and potentially malicious events, through an OpenSource tool called: FALCO, by Sysdig. 
+
+Falco monitors Linux system calls at runtime and laerts on any suspicious activity based upod configurable rules. 
+
+Falco looks at: 
+- Privilege escalation;
+- File access: reads or writes to files at well-known locations like /, /usr/bin, etc.
+- Binaries: execution of suspicous binaries such as opening a shell.
+
+
+
+
+
+

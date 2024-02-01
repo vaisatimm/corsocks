@@ -1,0 +1,6 @@
+6.2 - Minimizing base image attack surface 
+
+Software vulnerabilities inside a base image can be patched keeping the software up to date. 
+
+Base images should have less unnecessary software as possible. 
+

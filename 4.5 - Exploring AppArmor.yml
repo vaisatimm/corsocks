@@ -1,0 +1,28 @@
+4.5 - Exploring AppArmor
+
+AppArmor is security kernel module that provides access control for programs running on Linux systems. 
+Use AppArmor to control and limit what a program can do within the host OS. 
+
+"AppArmor Profile": set of rules that define what a program can do and cannot do. 
+
+Example of AppArmor profile that does not provide access to write any kind of data to the disk: 
+
+#include <tunables/global>
+profile k8s-deny-write flags=(attach_disconnected) {
+  #include <abstractions/base>
+  file,
+  #Deny all file writes.
+  deny /** w,
+}
+
+An "AppArmor" profile can be loaded into AppArmor at the server level and activated in one of two modes. 
+
+Complain mode: load a profile in complain mode, and AppArmor will simply generate a report on what the program is doing. THis is useful for discovering what aprogram does normally. 
+Enforce mode: load a profile in enforce mode (sometimes called "enforcing" the profile). and AppArmor will actively prevent the program from ding anything that the profile does not allow. 
+
+
+If a program process is compromized by an attacker AppArmor will make sure that the attacker can't do things that it doesn't normally do. 
+
+We need to set AppArmor profiles on every node of our cluster or the pods will not start. 
+
+

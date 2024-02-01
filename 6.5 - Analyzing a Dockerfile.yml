@@ -1,0 +1,48 @@
+6.5 - Analyzing a Dockerfile
+
+Static analysis: is the process of looking at the source code or configuration to identify potential security issues. 
+
+One way to harden the security of your images is to analyze the dockerfiles used to create images. 
+
+Things to pay attentions: 
+
+1 - User root: the final user to use in the final step where you choose the user will run the container at the end should not be root. 
+2 - latest Tag: you should not use the tag latest because an attacker could have uploaded a new version of the image with some malicious code,
+so you should always refer to a tag you trust. 
+3 - unnecessary software: no unneded software that could be vulnerable and could extend the surface of attacks. 
+4 - sensitive data: don't stores sensitive data inside a dockerfile, like passwords. 
+
+### Example
+
+FROM nginx:1.19.10
+
+USER root
+
+RUN apt-get update && apt-get install -y wget
+RUN useradd -ms /bin/bash nginxuser
+ENV db_password=Mellon
+
+USER root
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+
+Let's correct: 
+
+Change the final root user. 
+Remove the installation wget line
+Remove the password line.
+The FROM line is ok since we are not using the latest tag. 
+
+FROM nginx:1.19.10
+
+USER root
+
+RUN useradd -ms /bin/bash nginxuser
+
+USER nginxuser
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
