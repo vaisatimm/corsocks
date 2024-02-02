@@ -72,3 +72,21 @@ Let's create a falco rule on the worker node:
 So in the condition we are saying that every time an attacker tries send commands from inside the "falco-test" container (container.name), then we will print 
 an alert in the format: output: "%evt.time,%user.uid,%proc.name,%container.id,%container.name"
 
+[root@worker-1 ~]# falco -r falco-rule-to-create-on-worker.yaml -M 45
+
+[root@worker-1 ~]# falco --list
+
+
+To show all the different things that falco can reference. 
+
+Field Class:                  evt (All event types)
+Description:                  These fields can be used for all event types
+Event Sources:                syscall
+
+evt.num                       event number.
+evt.time                      event timestamp as a time string that includes the nanosecond part.
+evt.time.s                    event timestamp as a time string with no nanoseconds.
+evt.time.iso8601              event timestamp in ISO 8601 format, including nanoseconds and time zone offset (in UTC).
+
+[---] Output omitted. 
+
