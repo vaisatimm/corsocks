@@ -1,0 +1,33 @@
+7.10 - Undestanding Audit logs
+
+Audit logs are a set of chronological records of action performed through the k8s api.
+Theya are useful for seeing what is going in your cluster in real time (i.e, threat detection), or for examining what happened
+in th cluster after the fact (i.e, post-mortem analysis).
+
+##Example: 
+
+User tries to create a pod, the request goes to the api, the pod gets created and the audit log in created for this
+action since it required an action against the api server. 
+
+### AUDIT POLICY ####
+
+Audit policy includes a set of rules that determine which events are logged and how detailed the logs are. 
+
+Level of a policy is how detailed the rule's logs are. Can be ::
+- None :: log nothing.
+- Metadata :: log only high-level data :: timestamp etc. 
+- Request :: log the metadata and the request body of the request that the user is making to the kubernetes api. 
+- RequestRespose :: which logs everything:: metadata, requestBody and responseBody. 
+
+The resources is the k8s object types which the policy will applied to. 
+
+### Example
+
+apiVersion: audit.k8s.io/v1
+kind: Policy 
+rules: 
+- level: RequestResponse 
+  resources: 
+  - group: "" 
+    resources: ["pods", "services"]
+  namespace: ["test"]

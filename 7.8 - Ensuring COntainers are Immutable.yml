@@ -1,0 +1,49 @@
+7.8 - Ensureing containers are immutable
+
+Immutable containers do not change during their lifetime. 
+Instead of being changed, they are replaced with new containers. 
+
+This is means that the container file system remains static, and the container does not depend on non-immutable
+host resources that require privileged access. 
+
+Immutability is good because if an attacker access our container he is not able to download anything. 
+
+things that makes a container NON-IMMUTABLE anymore: 
+
+1. securityContext.privileged: true 
+2. hostNetwork: true 
+3. securityContext.allowPrivilegeEscalation: true //this allows a container to gain more privileges than the parent process.
+4. securityContext.runAsUser: root #or 0
+
+Another way to make a container immutable is to avoid that the container is able to write it's own file system: 
+
+securityContext: 
+  readOnlyRootFilesystem: true 
+
+If there are any directory that the container need to write like logs or cache then use empty dir and mount them: 
+
+apiVersion: 
+kind: Pod 
+metadata: 
+  name: immutable-pod 
+spec: 
+  containers: 
+  - name: nginx 
+    image: nginx:1.14.2 
+    securityContext: 
+      readOnlyRootFilesystem: true 
+    volumeMounts: 
+    - name: cache 
+      mountPath: /var/cache/nginx
+    - name: run 
+      mountPath: /var/run 
+  volumes: 
+  - name: cache 
+    emptyDir: {}
+  - name: run 
+    emptyDir: {}
+
+If you want to make a container immutable you just need to remove everything under securityContext except for: 
+securityContext.readOnlyFilesystem: "true"
+
+
