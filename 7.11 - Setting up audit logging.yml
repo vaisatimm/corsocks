@@ -1,0 +1,87 @@
+7.11 - Setting up audit logging 
+
+Modify the kube-apiserver manifest with :: 
+
+--audit-policy-file :: points to the audit policy config file (rules discussed before)
+--audit-log-path :: where the audit logs will be stored 
+--audit-log-maxage :: retention 
+--audit-log-maxbackup :: the number of old log files to keep 
+
+### Hands-on Demonstration ###
+
+Create a policy file in /etc/kubernetes/audit-policy.yaml 
+
+apiVersion: audit.k8s.io/v1
+kind: Policy 
+rules: 
+# Log changes to Namespaces at the RequestResponse level. 
+- level: RequestResponse 
+  resources: 
+  - group: "" 
+    resources: ["namespaces"] 
+
+# Log pod changes in the audit-test Namespace at Request level 
+- level: Request 
+  resources: 
+  - group: "" 
+    resources: ["pods"] 
+  namespaces: ["audit-test"]
+
+# Log all ConfigMap and Secret changes at the metadata level 
+- level: Metadata 
+  resources: 
+  - group: "" 
+    resources: ["secrets", "configmaps"] 
+
+# Catch-all - Log all requests at the metadata level 
+
+- level: Metadata // this means that this policy will be applied at level metadata to all the resources that are not considered by the previous rules.  
+
+//this is why I didn't specify any rule here. 
+
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    kubeadm.kubernetes.io/kube-apiserver.advertise-address.endpoint: 95.111.231.207:6443
+  creationTimestamp: null
+  labels:
+    component: kube-apiserver
+    tier: control-plane
+  name: kube-apiserver
+  namespace: kube-system
+spec:
+  containers:
+  - command:
+    - kube-apiserver
+    - --audit-policy-file=/etc/kubernetes/audit-policy.yaml
+    - --audit-log-path=/var/log/k8s-audit/k8s-audit.log
+    - --audit-log-maxage=30
+    - --audit-log-maxbackup=10
+
+
+[...] output omitted.
+
+    volumeMounts:
+    - mountPath: /etc/kubernetes/audit-policy.yaml
+      name: audit-config
+      readOnly: true
+    - mountPath: /var/log/k8s-audit
+      name: audit-log
+      readOnly: false
+
+[...] output omitted.
+
+  volumes:
+  - hostPath:
+      path: /etc/kubernetes/audit-policy.yaml
+      type: File
+    name: audit-config
+  - hostPath:
+      path: /var/log/k8s-audit
+      type: DirectoryOrCreate
+    name: audit-log
+
+
+
+
