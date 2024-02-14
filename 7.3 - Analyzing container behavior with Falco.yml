@@ -42,6 +42,20 @@ sudo apt-get update -y
 sudo apt-get install -y dkms make linux-headers-$(uname -r) dialog
 sudo apt-get install -y falco
 
+IN THE WIZARD SELECT EPBF
+Troubleshooting: 
+lsmod | grep falco
+sudo modprobe falco
+sudo apt-get install -y linux-headers-$(uname -r)
+sudo apt-get remove --purge -y falco
+sudo apt-get autoremove -y
+sudo apt-get update
+vim /etc/apt/sources.list.d/falcosecurity.list
+sudo apt-get update
+sudo apt-get install -y falco
+IN THE WIZARD SELECT EPBF, the second one
+systemctl status falco-bpf.service
+
 Let's test Falco with a pod test: 
 
 apiVersion: v1
@@ -74,6 +88,39 @@ So in the condition we are saying that every time an attacker tries send command
 an alert in the format: output: "%evt.time,%user.uid,%proc.name,%container.id,%container.name"
 
 [root@worker-1 ~]# falco -r falco-rule-to-create-on-worker.yaml -M 45
+
+root@vmi1537862:~# falco -r falco-rule.yaml -M 45
+Wed Feb 14 01:17:42 2024: Falco version: 0.37.1 (x86_64)
+Wed Feb 14 01:17:42 2024: Falco initialized with configuration file: /etc/falco/falco.yaml
+Wed Feb 14 01:17:42 2024: System info: Linux version 5.4.0-105-generic (buildd@lcy02-amd64-066) (gcc version 9.4.0 (Ubuntu 9.4.0-1ubuntu1~20.04)) #119-Ubuntu SMP Mon Mar 7 18:49:24 UTC 2022
+Wed Feb 14 01:17:42 2024: Loading rules from file falco-rule.yaml
+Wed Feb 14 01:17:42 2024: The chosen syscall buffer dimension is: 8388608 bytes (8 MBs)
+Wed Feb 14 01:17:42 2024: Starting health webserver with threadiness 4, listening on 0.0.0.0:8765
+Wed Feb 14 01:17:42 2024: Loaded event sources: syscall
+Wed Feb 14 01:17:42 2024: Enabled event sources: syscall
+Wed Feb 14 01:17:42 2024: Opening 'syscall' source with BPF probe. BPF probe path: /root/.falco/falco-bpf.o
+01:17:52.275124528: Warning 01:17:52.275124528,0,sh,b196ea016100,falco-test
+01:17:52.275339206: Warning 01:17:52.275339206,0,cat,b196ea016100,falco-test
+01:17:52.276178534: Warning 01:17:52.276178534,0,sh,b196ea016100,falco-test
+01:17:52.276463713: Warning 01:17:52.276463713,0,sleep,b196ea016100,falco-test
+01:17:57.277244002: Warning 01:17:57.277244002,0,sh,b196ea016100,falco-test
+01:17:57.277467736: Warning 01:17:57.277467736,0,cat,b196ea016100,falco-test
+01:17:57.278294636: Warning 01:17:57.278294636,0,sh,b196ea016100,falco-test
+01:17:57.278448745: Warning 01:17:57.278448745,0,sleep,b196ea016100,falco-test
+01:18:02.279176521: Warning 01:18:02.279176521,0,sh,b196ea016100,falco-test
+01:18:02.279384714: Warning 01:18:02.279384714,0,cat,b196ea016100,falco-test
+01:18:02.280476580: Warning 01:18:02.280476580,0,sh,b196ea016100,falco-test
+01:18:02.280643044: Warning 01:18:02.280643044,0,sleep,b196ea016100,falco-test
+01:18:07.281328458: Warning 01:18:07.281328458,0,sh,b196ea016100,falco-test
+01:18:07.281565363: Warning 01:18:07.281565363,0,cat,b196ea016100,falco-test
+01:18:07.282205888: Warning 01:18:07.282205888,0,sh,b196ea016100,falco-test
+01:18:07.282366948: Warning 01:18:07.282366948,0,sleep,b196ea016100,falco-test
+01:18:12.283128891: Warning 01:18:12.283128891,0,sh,b196ea016100,falco-test
+01:18:12.283322180: Warning 01:18:12.283322180,0,cat,b196ea016100,falco-test
+01:18:12.283910148: Warning 01:18:12.283910148,0,sh,b196ea016100,falco-test
+01:18:12.284160592: Warning 01:18:12.284160592,0,sleep,b196ea016100,falco-test
+01:18:17.285008342: Warning 01:18:17.285008342,0,sh,b196ea016100,falco-test
+
 
 [root@worker-1 ~]# falco --list
 
