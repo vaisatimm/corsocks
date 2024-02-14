@@ -1,0 +1,65 @@
+Domande CKS: 
+
+1
+
+Fix a Pod's Service Account That Has Too Many Permissions
+Fix a Pod Configured to Use an Incorrect Service Account
+
+2
+
+Fix CIS Benchmark Issues Detected for kubelet
+Fix CIS Benchmark Issues Detected for kube-apiserver
+Fix CIS Benchmark Issues Detected for etcd
+
+3
+
+Create a Default Deny Network Policy
+Create a Network Policy to Allow Specific Traffic
+
+4
+
+Configure Admission Control
+Set the URL of the Image Scanning Service
+Enable the Admission Control Plugin(s)
+
+5
+
+Use Trivy to Scan the Images Used in Pods
+Delete Pods That Have Container Images with Severe Vulnerabilities
+
+6
+
+Enforce an AppArmor Profile on the Worker Node
+Apply the Profile to a Container	
+
+7
+
+Create a Falco Rules File
+Log Activity from a Suspicious Container
+
+8
+
+Add Rules to the Cluster's Audit Policy
+Configure Audit Logging
+
+9
+
+Get a Username and Password from an Existing Secret
+Create a Secret and Mount It to a Pod
+
+10
+
+Analyze a Dockerfile for Security Best Practices
+Analyze a YAML File for Security Best Practices
+Ensure Containers Are Static and Immutable
+
+11
+
+Create a RuntimeClass to Use for Untrusted Workloads
+Configure Pods to Use gVisor
+
+12
+
+Create a PodSecurityPolicy to Prevent Privileged Containers
+Use the PodSecurityPolicy to Secure a Namespace
+

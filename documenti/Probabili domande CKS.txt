@@ -1,0 +1,40 @@
+Probili domande CKS 
+
+1 - Create a role and rolebinding to allow user to create and delete pods in a namespace;
+2 - Improve security of api-server: implement RBAC for access to api-server, client certificates for authentication;
+_____________________________________________________________________________________________________________
+
+1 - Create a runtimeClass with the handler indicated and set the runtimeClassName in the deploy;
+2 - Create a serviceaccount no automount api credentials, use the serviceaccount in a pod then delete the old one;
+3 - Fix violations against api-server, kubelet and etcd;
+4 - Network policy that allows ingress traffic to a pod with a certain label from pods inside a ns with a certain label and (logic) pod with another certain label;
+5 - Fix the api-server to use TLS 1.3 and precise cipher suite;
+6 - Create a netpol denyall;
+7 - Edit a serviceaccont role to put just get verb; create a second role with delete and a rolebinding between the aforementioned sa and the role;
+8 - Enable audit log putting into the api-server the log dir, the retaintion and num of bck; add the volumes and volumesMounts; create the policy;
+9 - Get the user and passwd from a secret, create a new secret with user and password and mount them in /etc/secret;
+10 - Fix a Dockerfile and a Deployment;
+11 - Edit a deploy and set securityContext: allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, runAsUser: 30000;
+12 - Delete pod with high anc critical vulnerabilities;
+13 - Set Mode Node, RBAC, Access control NodeRestriction into api-server; delete old clusterrolebinding; 
+14 - Create appArmor profile on worker, create a pod with the annotation needed for using that profile, test with touch a file inside the container that will try to write to the node disk;
+15 - Use Falco or Sysdig to observe for 30 sec if a container tries to spawn a process; track by username and and userid; 
+16 - Edit admission_configuration.json and set defaultAllow: false; add webhook server address to kubeconfig; edit api-server to enable ImageWebhooPolicy and set the path of admission_configuration.json, create a pod with imagetag latest, it will fail for this.
+
+
+1 - Create a runtimeclass;
+2 - Create a sa, no automount, use it in a pod;
+3 - Fix violations apiserver etc;
+4 - Netpol;
+5 - Fix apiserver TLS;
+6 - Netpol deny-all;
+7 - Edit sa, create a sa, role and roleb.;
+8 - Enable audit log;
+9 - Create a new secret;
+10 - Fix dockerfile & deployment;
+11 - Set securitycontext in a deploy;
+12 - Delete deploy with image vulns;
+13 - Set Node Mode, access control apiserver;
+14 - Apparmor profile; create a pod with that;
+15 - Use Falco to observe a container for 30 sec;
+16 - Set up ImageWebhookPolicy.
