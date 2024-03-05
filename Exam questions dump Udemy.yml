@@ -1,0 +1,270 @@
+Exam questions dump Udemy
+
+Question n° 3
+
+Fix Kube-Apiserver:
+Make a bck of kube-apiserver.yaml and run "kube-bench master"
+- --authorization-mode=Node, RBAC  #set it like this
+- --insecure-bind-address=0.0.0.0  #remove this 
+
+Fix Kubelet: 
+cp /var/lib/kubelet/config.yaml
+
+apiVersion: ... 
+authentication: 
+  anonymous: 
+    enabled: false #change true to false 
+  webhook: 
+    cacheTTL: 0s
+    enabled: true 
+  x509:
+    clientCAFile: /etc/kubernetes/pki/ca.cert
+authorization: 
+  mode: Webhook #Change to Webhook 
+  webhook: 
+
+Fix etcd: 
+
+- --client-cert-auth=true #set to true 
+
+systemctl daemon-reload 
+systemctl restart kubelet 
+
+Question n° 4 - Network Policy
+
+Question n° 5 - TLS Version - CIPHER SUITES
+
+Modify the kube-apiserver and insert: 
+
+- --tls-cipher-suites=TLS_AES_128_GMC_SHA_256
+- --tls-version=VersionTLS13
+
+Modify the etcd.yaml and insert: 
+
+- --cipher-suites=TLS_ECDE_RSA_WITH_AES_128_GMC_SHA256
+
+Question n° 6 - default deny netpol
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: 
+  name: denypolicy
+  namespace: testing 
+spec: 
+  podSelector: {}
+  policyTypes: 
+  - Ingress 
+  - Egress
+
+
+Question n° 7 - Edit sa e create a new one with role and rolebinding
+
+k edit role web-role -n db
+
+resources: 
+- services
+verbs: 
+- get
+
+----- create a second role 
+
+k create role role-2 --verb=delete --resources=namespaces -n db
+
+k create rolebinding role-2-binding --role=role-2 --serviceaccount=db:service-account-web -n db 
+
+Question n° 8 - Audit log Policy
+
+Create: /etc/kubernetes/logpolicy/sample-policy.yaml 
+
+apiVersion: audit.k8s.io/v1
+kind: Policy 
+omitStages:   
+  - "RequestReceived"
+rules:
+  - level: RequestResponse
+    resources: 
+    - group: ""
+      resources: ["persistentvolumes"]
+  - level: Metadata 
+    resources: 
+    - group: "" 
+      resources: ["secrets", "configmaps"]
+
+  - level: Request
+    resources: 
+    - group: "" 
+      resources: ["configmaps"]
+    namespaces: ["front-apps"]
+
+  - level: Metadata
+    omitStages:
+      - "RequestReceived"
+!!! DON'T FORGET TO APPLY THE POLICY !!!
+
+Turn on the audit loggin, modify: kube-apiserver
+
+#Add some configuration 
+
+- --audit-policy-life=/etc/kubernetes/logpolicy/sample-policy.yaml 
+- --audit-log-path=/var/log/kubernetes/audit-log.txt
+- --audit-log-maxage=10
+- --audit-log-maxbackup=2
+
+Check if the files are mounted, otherwise mount them: 
+
+volumesMounts: 
+- mountPath: /etc/kubernetes/logpolicy/sample-policy.yaml
+  name: audit 
+  readOnly: true 
+- mountPath: /var/log/kubernetes/audit 
+  name: audit-log 
+  readOnly: true 
+
+volumes: 
+- hostPath: 
+    path: /etc/kubernetes/logpolicy/sample-policy.yaml
+    type: File 
+  name: audit 
+- hostPath:
+    path: /var/log/kubernetes/
+    type: DirectoryOrCreate
+
+Check: tail -f /var/log/kubernetes/audit.log 
+--------------------------------------------------------
+
+Question n° 9 - extract secret data from a secret 
+
+Question n° 10 - Fix a dockerfile and a deployment 
+
+###Dockerfile 
+FROM ubuntu:16.04 #change it from latest to 16.04 
+
+USER nobody #change it from root to nobody
+
+USER nobody #change again user from root to nobody 
+
+###Deployment
+
+privileged: false (or False with capital F?)
+readOnlyRootFilesystem: true (or True with capital T?)
+runAsUser: 65535 (if it isn't present)
+
+Question n° 11 - securityContext
+
+edit a deploy and add under spec.containers (at the same level of volumeMounts): 
+
+securityContext: 
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsUser: 30000
+
+--------------------------------------------------------
+
+Question n° 12 - delete image with vulns 
+
+ssh master01
+
+k describe po -n kamino | grep -iE '^Name:|Image:'
+
+trivy image -s HIGH,CRITICAL amazonlinux:1
+
+k delete po [...]
+
+_________________________________________________________________
+
+Question n° 13 - Mode Node, RBAC and NodeRestriction
+
+set: 
+
+- --authorization-mode=Node,RBAC
+- --enable-admission-plugins=NodeRestriction 
+
+Finally: 
+kubectl --kubeconfig=/etc/kubernetes/admin.conf delete clusterrolebinding system:anonymous 
+
+_________________________________________________________________
+
+Question n° 14 - Apparmor 
+
+ssh node02
+sudo -iE
+cd /etc/apparmor.d
+
+cat nginx_apparmor | grep nginx-profile
+nginx-profile-3
+
+apparmor_parser /etc/apparmor.d/nginx_apparmor 
+
+apparmor_status | grep nginx-profile-3
+
+#Create a pod with the annotation: 
+
+This is an example to undestand where to insert the annotation inside a deployment: 
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-apparmor-example
+  labels:
+    app: nginx-apparmor-example
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-apparmor-example
+  template:
+    metadata:
+      labels:
+        app: nginx-apparmor-example
+      annotations:
+        # Applica il profilo AppArmor 'docker-default' al container nginx
+        container.apparmor.security.beta.kubernetes.io/nginx: "docker-default"
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:stable
+        ports:
+        - containerPort: 80
+
+Question n° 15 - Falco and Sysdig
+
+sysdig -M 30 -p "%env.time,%user.name,%proc.name" container.id=ahfoauso8o3qh8q >> details
+
+sysdig -M 30 -p "%env.time,$user.id,%proc.name" container.id=ahfoauso8o3qh8q >> details 
+
+________________________________________________________________________________
+
+Question n° 16 - Setting the ImagePolicyWebhook 
+
+Incomplete configuration in: 
+
+/etc/kubernetes/epconfig
+
+Container image scanner: 
+
+https://image-bouncer-webhook.default.svc:1323/image_policy
+
+1 - Enable the plugin to create the mirror policy: 
+2 - Change the control configuration and set it to implicit deny: 
+3 - Edit the configuration to correctly point to the provided https endpoint: 
+
+
+Finally attempt to create a deploy with a vurnerable resource whose manifest is at /cks/img/web1.yaml
+
+/etc/kubernetes/epconfig/admission_configuration.json 
+
+...
+  defaultAllow: false
+... 
+
+/etc/kubernetes/epconfig/kubeconfig.yml
+
+...
+  certificate-authority: /etc/kubernetes/epconfig/server.crt 
+  server: https://image-bouncer-webhook.default.svc:1323/image_policy  #Add webhook server address 
+  name: bouncer_webhook 
+
+/etc/kubernetes/kube-apiserver.yaml 
+
+- --enable-admission-plugins=NodeRestriction,ImagePolicyWebhook 
+- --admission-control-config-file=/etc/kubernetes/epconfig/admission_configuration.json 
