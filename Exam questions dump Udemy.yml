@@ -93,10 +93,46 @@ systemctl restart kubelet
 
 Question n° 4 - Network Policy
 
+The pod (products-service) in the namespace (dev-team) should be accessed only by: 
+- pods in ns "qaqa";
+- pods in any namespace with the label "environment:testing"
+
+There is a skeleton of the manifest in the location set by the exercise: 
+
+
 k get ns --show-labels
+kubernetes.io/metadata.name=qa 
 
 k get po -n dev-team --show-labels 
+"environment:testing"
 
+In case you don't have the labels you have to put them: 
+
+k label ns qaqa kubernetes.io/metadata.name=qa 
+k label pod products-service environment=testing -n dev-team 
+
+
+netpol.yaml
+
+apiVersion: networking.k8s.io/v1 
+kind: NetworkPolicy 
+metadata: 
+  name: pod-restriction 
+  namespace: dev-team 
+spec: 
+  podSelector: 
+    matchLabels: 
+      environment: testing 
+  policyTypes: 
+  - Ingress: 
+  ingress: 
+  - from: 
+    - namespaceSelector: 
+        matchLabels: 
+          kubernetes.io/metadata.name: qa 
+    - podSelector: 
+        matchLabels:
+          environment: testing 
 
 Question n° 5 - TLS Version - CIPHER SUITES
 
@@ -121,7 +157,6 @@ spec:
   policyTypes: 
   - Ingress 
   - Egress
-
 
 Question n° 7 - Edit sa e create a new one with role and rolebinding
 
@@ -199,6 +234,45 @@ Check: tail -f /var/log/kubernetes/audit.log
 --------------------------------------------------------
 
 Question n° 9 - extract secret data from a secret 
+
+root@master01:~# kubectl get secrets -n istio-system db1-test -o yaml
+apiVersion: v1
+data:
+  password: aGVsbG8=
+  username: ZGlr
+kind: Secret
+metadata:
+  creationTimestamp: "2023-05-21T14:58:44Z"
+  name: db1-test
+  namespace: istio-system
+  resourceVersion: "116898"
+  uid: bed8df2e-5c4d-4543-80a1-ba2392545510
+type: Opaque
+
+# decrypt username
+echo -n 'ZGlr' | base64 -d > /cks/sec/user.txt
+
+# decrypt password
+echo -n 'aGVsbG8=' | base64 -d > /cks/sec/pass.txt
+
+kubectl create secret generic db-test --from-literal=username=production-instance --from-literal=password=KvLfTkgs4VAH -n istio-system
+
+apiVersion: v1 
+kind: Pod 
+metadata: 
+  name: secret-pod 
+  namespace: istio-system 
+spec: 
+  containers: 
+  - image: nginx 
+    name: dev-container
+    volumeMounts: 
+    - name: secret-volume 
+      mountPath: /etc/secret 
+  volumes: 
+  - name: secret-volume 
+    secret: 
+      secretName: db2-test
 
 Question n° 10 - Fix a dockerfile and a deployment 
 
@@ -284,7 +358,7 @@ spec:
         app: nginx-apparmor-example
       annotations:
         # Applica il profilo AppArmor 'docker-default' al container nginx
-        container.apparmor.security.beta.kubernetes.io/nginx: "docker-default"
+        container.apparmor.security.beta.kubernetes.io/nginx: localhost/docker-default
     spec:
       containers:
       - name: nginx
