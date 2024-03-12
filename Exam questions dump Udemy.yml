@@ -7,6 +7,60 @@ kind: RuntimeClass
 metadata: 
   name: untrusted 
 handler: runsc
+
+Create a pod with that runtimeclass. You must specify "runtimeClassName" inside the pod spec: 
+
+apiVersion: v1 
+kind: Pod 
+metadata: 
+  namespace: client 
+spec: 
+  runtimeClassName: 
+  contaieners: 
+    - name: foo 
+      image: janedoe/awesomeapp:v1
+
+Question n° 4
+
+/cks/sa/pod1.yaml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: backend
+  namespace: qa
+spec:
+  serviceAccountName: dadong
+  containers:
+  - image: nginx:1.9
+    imagePullPolicy: IfNotPresent
+    name: backend
+
+k create sa backend-sa -n qa --dry-run=client -o yaml > backend-sa.yaml
+
+apiVersion: v1 
+kind: ServiceAccount 
+metadata: 
+  name: backend-sa
+  namespace: qa 
+
+Set to not automatically mount API credentials 
+
+apiVersion: v1 
+kind: ServiceAccount 
+metadata: 
+  name: backend-sa
+  namespace: qa 
+automountServiceAccountToken: false 
+
+k get sa -n qa 
+
+k get po -n qa -o yaml | grep -i serviceaccount 
+serviceAccountName: backend-sa
+serviceAccountName: default 
+
+k delete sa test01 -n qa
+
 Question n° 3
 
 Fix Kube-Apiserver:
@@ -38,6 +92,11 @@ systemctl daemon-reload
 systemctl restart kubelet 
 
 Question n° 4 - Network Policy
+
+k get ns --show-labels
+
+k get po -n dev-team --show-labels 
+
 
 Question n° 5 - TLS Version - CIPHER SUITES
 
