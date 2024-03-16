@@ -298,6 +298,79 @@ securityContext:
   readOnlyRootFilesystem: true
   runAsUser: 30000
 
+
+For example: 
+
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: security-context-deployment
+    spec:
+      containers:
+      - image: nginx:stable
+        imagePullPolicy: IfNotPresent
+        name: nginx
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsUser: 3000
+
+Remember that some security contexts directives can be set also at pod level so between spec and containers, like this: 
+
+    spec: 
+      securityContext: 
+        ... 
+      containers: 
+
+But, the securityContext allowPrivilegeEscalation and readOnlyRootFilesystem can be set just at container level, like in the example before: 
+
+    spec:
+      containers:
+      - image: nginx:stable
+        imagePullPolicy: IfNotPresent
+        name: nginx
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsUser: 3000
+          
+You can also make a mix: set the runAsUser at pod level and the others at containers level. Like here: 
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: security-context-deployment
+  name: security-context-deployment
+  namespace: securitycontext
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: security-context-deployment
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: security-context-deployment
+    spec:
+      securityContext:
+        runAsUser: 3000
+      containers:
+      - image: nginx:stable
+        name: nginx
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+
+
 --------------------------------------------------------
 
 Question n° 12 - delete image with vulns 
