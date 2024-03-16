@@ -20,7 +20,7 @@ spec:
     - name: foo 
       image: janedoe/awesomeapp:v1
 
-Question n° 4
+Question n° 2
 
 /cks/sa/pod1.yaml
 
@@ -368,9 +368,9 @@ spec:
 
 Question n° 15 - Falco and Sysdig
 
-sysdig -M 30 -p "%env.time,%user.name,%proc.name" container.id=ahfoauso8o3qh8q >> details
+sysdig -M 30 -p "%evt.time,%user.name,%proc.name" container.id=ahfoauso8o3qh8q >> details
 
-sysdig -M 30 -p "%env.time,$user.id,%proc.name" container.id=ahfoauso8o3qh8q >> details 
+sysdig -M 30 -p "%evt.time,%user.uid,%proc.name" container.id=ahfoauso8o3qh8q >> details 
 
 ________________________________________________________________________________
 
